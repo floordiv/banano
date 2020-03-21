@@ -14,14 +14,16 @@ class var:
     filename = ''   # current editing file
     content = []    # list with strings, every element is a new line
     visible_content = []    # same var as content, but for highlighting and cursor drawing
-    res = [100, 20]     # resolution: 100 symbols by x-coord, and 20 lines as a y-coord
-    page_res = [0, 25]  # display file content from index1 to index2 (index2 - index1 lines are shown by time)
+    res = [100, 50]     # resolution: 100 symbols by x-coord, and 20 lines as a y-coord
+    page_res = [0, res[1]]  # display file content from index1 to index2 (index2 - index1 lines are shown by time)
     header = 'baNano, version 0.0.1'  # editor name
     syntax_templates = {}   # should be loaded automatically
     tab_size = 4    # spaces in tab, using spaces, because of pep8
     
     edit_line_cursor = -1   # variables for one-lined input
     edit_line_temp = ''
+
+    previous_cursor_letter = ''     # to uncolor the symbol
 
     bad_letters = list('qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890')
     good_letters = list(' -=[{<.*/+:')
@@ -126,11 +128,24 @@ class editor:
     def update_cursor():
         x, y = var.cursor_pos
         color, bg_color = var.settings['cursor_color']
-        var.visible_content[y] = var.visible_content[y][:x] + colored(var.visible_content[y][x], color, bg_color) + var.visible_content[y][x:]
+        try:
+            var.visible_content[y] = var.visible_content[y][:x] + colored(var.visible_content[y][x], color, bg_color) + var.visible_content[y][x + 1:]
+        except:     # it means, that line is empty
+            var.visible_content[y] = colored(' ', color, bg_color)
+
+        display.sync_visible_content_with_content()
+
+    @staticmethod
+    def remove_cursor():
+        x, y = var.cursor_pos
+        var.visible_content[y] = var.visible_content[y][:x + 1] + colored(var.visible_content[y][x], 'grey') + var.visible_content[y][x:]
     
     @staticmethod
     def move_cursor(coords):
         start, end = var.page_res
+
+        editor.remove_cursor()
+        # var.previous_cursor_letter = var.content[var.cursor_pos[1]][var.cursor_pos[0]]
 
         # start checking cursor move by y-coord
         if var.cursor_pos[1] + coords[1] < start and start > 0:  # move visible_content upper
@@ -140,6 +155,9 @@ class editor:
             # len(var.visible_content) - lines counter
             var.page_res = [var.page_res[0] + 1, var.page_res[1] + 1]
             var.cursor_pos[1] += 1
+        elif coords[1] != 0 and len(var.content[var.cursor_pos[1]]) > len(var.content[var.cursor_pos[1] + coords[1]]):
+            var.cursor_pos[0] = len(var.content[var.cursor_pos[1] + coords[1]]) - 1
+            var.cursor_pos[1] += coords[1]
 
         # start checking cursor by x-coord
         elif 0 > var.cursor_pos[0] + coords[0] and 0 < var.cursor_pos[0]:
@@ -168,7 +186,7 @@ class display:
         for index, element in enumerate(var.visible_content[start:end]):
             # 1   some text here
             index += 1
-            line = str(index) + ' ' * (max_index_len - len(str(index))) + '  ' + element
+            line = str(index + start) + ' ' * (max_index_len - len(str(index))) + '  ' + element
 
             print(line)
         print('=' * var.res[0])
@@ -210,6 +228,7 @@ class File:
 
 def on_press(key):
     x, y = var.cursor_pos
+    bottom_text = False
 
     if key == Key.esc:
         deinit()
@@ -226,6 +245,10 @@ def on_press(key):
             var.content[y] = var.content[y][:x] + var.content[y][:x + 1]
     elif key == Key.tab:
         var.content[y] = var.content[y][:x + 1] + ' ' * var.tab_size + var.content[y][x + 1:]
+    elif key == Key.f5:
+        File.save()
+    elif key in [Key.f1, Key.f2, Key.f3, Key.f4]:
+        bottom_text = 'Sorry, these features are unavailable now'
     else:
         key = str(key)[1:-1]
         if len(key) == 1:
@@ -233,7 +256,7 @@ def on_press(key):
 
     display.sync_visible_content_with_content()
     editor.check_syntax()
-    display.draw()
+    display.draw(bottom_text=bottom_text)
 
 
 def on_release(key):
@@ -282,6 +305,8 @@ if filename_syntax_template in os.listdir('syntax'):
         var.syntax_templates = json.load(file)[0]
 
 File.open(var.filename)
+
+var.previous_cursor_letter = var.content[0][0]
 
 editor.check_syntax()
 display.draw()
