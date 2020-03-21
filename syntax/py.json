@@ -1,0 +1,6 @@
+[{"import": "yellow", "with": "yellow", "or": "yellow", "and": "yellow", "lambda": "yellow",
+  "not": "yellow", "is": "yellow", "in": "yellow", "$functions": "cyan", "string": "green",
+  "int": "cyan", "str": "cyan", "float": "cyan", "for":  "yellow", "if": "yellow", "elif": "yellow",
+  "else": "yellow", "try": "yellow", "except": "yellow", "pass": "yellow", "continue": "yellow",
+  "break": "yellow", "raise": "yellow", "from": "yellow", "class": "yellow", "def": "blue",
+  "'": "green", "return": "yellow", "True": "magenta", "False": "magenta", "None": "magenta"}]
